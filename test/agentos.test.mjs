@@ -133,8 +133,12 @@ test("role prompt includes profile and referenced context with warnings", async 
   assert.match(prompt, /Rule text/);
 });
 
-test("launch name prefers env, then session, then saved link-name", () => {
+test("launch name prefers flag, env, saved link-name, then session", () => {
+  assert.equal(resolveLaunchName({ flagName: " direct ", envName: "env", sessionName: "session" }), "direct");
   assert.equal(resolveLaunchName({ envName: " builder ", sessionName: "session" }), "builder");
   assert.equal(resolveLaunchName({ sessionName: " session " }), "session");
-  assert.equal(resolveLaunchName({ entries: [{ type: "custom", customType: "link-name", data: { name: "saved" } }] }), "saved");
+  assert.equal(resolveLaunchName({ sessionName: "session", entries: [{ type: "custom", customType: "link-name", data: { name: "saved" } }] }), "saved");
+  assert.equal(resolveLaunchName({ sessionName: "session", entries: [{ type: "custom", customType: "link-name", details: { name: "details" } }] }), "details");
+  assert.equal(resolveLaunchName({ sessionName: "session", entries: [{ type: "custom", customType: "link-name", content: "content" }] }), "content");
+  assert.equal(resolveLaunchName({}), "");
 });

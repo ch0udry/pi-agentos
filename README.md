@@ -96,13 +96,51 @@ Rules and checklists may be written relative to `.pi/agents`. Docs and profiles 
 
 Unknown tool names are reported visibly. If an allowlist resolves to zero available tools, role activation fails instead of starting a broken session.
 
-## Example
+## Launch sessions
+
+Resume an existing AgentOS-backed linked session when it exists in this cwd, otherwise let pi-link create a new linked session:
 
 ```sh
-pi-link builder
+pi-link planner
 ```
 
-If `.pi/agents/agents.yaml` contains `id: builder`, the session starts as Builder Agent. If not, it stays a normal linked Pi session.
+If `.pi/agents/agents.yaml` contains `id: planner`, the session activates Planner Agent. If not, it stays a normal pi-link session.
+
+Open a fresh persistent Planner Agent session:
+
+```sh
+pi --link --link-name planner
+```
+
+Open a fresh non-persistent scratch Planner Agent session:
+
+```sh
+pi --link --link-name planner --no-session
+```
+
+pi-link may print `No "planner" in this cwd... Starting new session.` when creating a new session. That message is normal pi-link session resolution, not an AgentOS failure.
+
+## Check active role
+
+Inside a session:
+
+```text
+/agentos-status
+```
+
+Active role example:
+
+```text
+AgentOS active: planner
+profile: .pi/agents/planner.md
+workspace: .
+```
+
+Fallback example:
+
+```text
+Plain pi-link session: no AgentOS agent matched "scratch".
+```
 
 ## Development
 

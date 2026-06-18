@@ -21,6 +21,8 @@ const packageRoot = path.dirname(fileURLToPath(import.meta.url));
 const packageAgentsDir = path.join(packageRoot, "agents");
 let activeRole: ActiveRole | null = null;
 let activeProjectRoot = "";
+let baselineTools: string[] | null = null;
+let roleChangedTools = false;
 
 function entriesFrom(ctx: ExtensionContext): unknown[] {
   try {
@@ -42,9 +44,21 @@ function setStatus(ctx: ExtensionContext, value: string | undefined) {
   }
 }
 
+function captureBaselineTools(pi: ExtensionAPI) {
+  if (!baselineTools) baselineTools = [...(pi.getActiveTools?.() ?? [])];
+}
+
+function restoreBaselineTools(pi: ExtensionAPI) {
+  if (roleChangedTools && baselineTools) {
+    pi.setActiveTools?.(baselineTools);
+    roleChangedTools = false;
+  }
+}
+
 async function refreshActiveRole(pi: ExtensionAPI, ctx: ExtensionContext, options: { notifyUser?: boolean } = {}) {
   activeProjectRoot = ctx.cwd;
   await syncDefaultAgents({ packageAgentsDir, projectRoot: ctx.cwd });
+  captureBaselineTools(pi);
 
   const launchName = resolveLaunchName({
     envName: process.env.PI_LINK_NAME,
@@ -55,6 +69,7 @@ async function refreshActiveRole(pi: ExtensionAPI, ctx: ExtensionContext, option
   if (!launchName) {
     activeRole = null;
     setStatus(ctx, undefined);
+    restoreBaselineTools(pi);
     return;
   }
 
@@ -62,6 +77,7 @@ async function refreshActiveRole(pi: ExtensionAPI, ctx: ExtensionContext, option
   if (!resolved.active) {
     activeRole = null;
     setStatus(ctx, undefined);
+    restoreBaselineTools(pi);
     if (resolved.errors.length) notify(ctx, `AgentOS ${launchName}: ${resolved.errors.join("; ")}`, "error");
     return;
   }
@@ -71,19 +87,23 @@ async function refreshActiveRole(pi: ExtensionAPI, ctx: ExtensionContext, option
   const warnings = [...resolved.warnings];
   const policy = computeToolPolicy(
     resolved.profile,
-    pi.getActiveTools?.() ?? [],
+    baselineTools ?? pi.getActiveTools?.() ?? [],
     pi.getAllTools?.() ?? [],
   );
 
   if (policy.errors.length) {
     activeRole = null;
     setStatus(ctx, undefined);
+    restoreBaselineTools(pi);
     notify(ctx, `AgentOS ${launchName}: ${policy.errors.join("; ")}`, "error");
     return;
   }
 
   warnings.push(...policy.warnings);
-  if (policy.apply) pi.setActiveTools?.(policy.tools);
+  if (policy.apply) {
+    pi.setActiveTools?.(policy.tools);
+    roleChangedTools = true;
+  }
 
   activeRole = { name: launchName, profile: resolved.profile, warnings };
   setStatus(ctx, `AgentOS: ${launchName}`);

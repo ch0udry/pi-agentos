@@ -63,6 +63,36 @@ test("extension startup syncs defaults and activates declared pi-link name", asy
   assert.match(result.systemPrompt, /You are the Builder Agent/);
 });
 
+
+test("extension restores baseline tools when a later session name is undeclared", async () => {
+  const project = await tmpProject();
+  const handlers = new Map();
+  let sessionName = "builder";
+  let activeTools = ["read", "grep", "find", "ls", "edit", "write", "bash", "ask_user"];
+
+  const pi = {
+    on(name, handler) { handlers.set(name, handler); },
+    getSessionName() { return sessionName; },
+    getActiveTools() { return activeTools; },
+    getAllTools() { return activeTools.map((name) => ({ name })); },
+    setActiveTools(names) { activeTools = names; },
+  };
+  const ctx = {
+    cwd: project,
+    ui: { notify() {}, setStatus() {} },
+    sessionManager: { getEntries() { return []; } },
+  };
+
+  piAgentOS(pi);
+  await handlers.get("session_start")({}, ctx);
+  assert.deepEqual(activeTools, ["read", "grep", "find", "ls", "edit", "write", "bash"]);
+
+  sessionName = "scratch";
+  await handlers.get("session_start")({}, ctx);
+
+  assert.deepEqual(activeTools, ["read", "grep", "find", "ls", "edit", "write", "bash", "ask_user"]);
+});
+
 test("extension leaves undeclared names alone", async () => {
   const project = await tmpProject();
   const handlers = new Map();

@@ -1,0 +1,36 @@
+version: 1
+
+defaults:
+  cwd: parent
+  enabled: true
+
+agents:
+  - id: ticket
+    profile: .pi/agents/ticket.md
+
+  - id: scout
+    profile: .pi/agents/scout.md
+
+  - id: architect
+    profile: .pi/agents/architect.md
+
+  - id: planner
+    profile: .pi/agents/planner.md
+
+  - id: builder
+    profile: .pi/agents/builder.md
+
+  - id: qa
+    profile: .pi/agents/qa.md
+
+  - id: reviewer
+    profile: .pi/agents/reviewer.md
+
+  - id: refactor
+    profile: .pi/agents/refactor.md
+
+  - id: release
+    profile: .pi/agents/release.md
+
+  - id: explainer
+    profile: .pi/agents/explainer.md

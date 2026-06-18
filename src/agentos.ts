@@ -307,6 +307,10 @@ function rel(projectRoot: string, filePath: string): string {
   return path.relative(projectRoot, filePath) || ".";
 }
 
+export function relativeProjectPath(projectRoot: string, filePath: string): string {
+  return rel(projectRoot, filePath);
+}
+
 export function buildRolePrompt(projectRoot: string, profile: AgentProfile, options: { availableSkills?: string[]; maxContextChars?: number } = {}): string {
   const availableSkills = options.availableSkills;
   const warnings = [...profile.warnings];
@@ -361,15 +365,30 @@ export function buildRolePrompt(projectRoot: string, profile: AgentProfile, opti
 
 export function latestLinkNameFromEntries(entries: unknown[]): string {
   for (let i = entries.length - 1; i >= 0; i--) {
-    const entry = entries[i] as { type?: string; customType?: string; data?: { name?: unknown } };
-    if (entry.type === "custom" && entry.customType === "link-name") {
-      const name = normalizeName(entry.data?.name);
-      if (name) return name;
-    }
+    const entry = entries[i] as {
+      type?: string;
+      customType?: string;
+      data?: { name?: unknown };
+      content?: unknown;
+      details?: { name?: unknown };
+    };
+    if (entry.type !== "custom" || entry.customType !== "link-name") continue;
+
+    const dataName = normalizeName(entry.data?.name);
+    if (dataName) return dataName;
+
+    const detailsName = normalizeName(entry.details?.name);
+    if (detailsName) return detailsName;
+
+    const contentName = normalizeName(entry.content);
+    if (contentName) return contentName;
   }
   return "";
 }
 
-export function resolveLaunchName(input: { envName?: unknown; sessionName?: unknown; entries?: unknown[] }): string {
-  return normalizeName(input.envName) || normalizeName(input.sessionName) || latestLinkNameFromEntries(input.entries ?? []);
+export function resolveLaunchName(input: { flagName?: unknown; envName?: unknown; sessionName?: unknown; entries?: unknown[] }): string {
+  return normalizeName(input.flagName)
+    || normalizeName(input.envName)
+    || latestLinkNameFromEntries(input.entries ?? [])
+    || normalizeName(input.sessionName);
 }
